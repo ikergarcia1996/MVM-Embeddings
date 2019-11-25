@@ -1,13 +1,10 @@
-from utils import isInt_float
+#from utils import isInt_float
 import numpy as np
-import regex
 from sklearn.preprocessing import normalize
-from num2words import num2words
 from vocabulary import Vocabulary
-import pandas as pd
 import logging
 import io
-import codecs
+#import codecs
 from utils import get_dimensions, get_num_words
 import datetime
 
@@ -154,37 +151,6 @@ class Embedding(object):
         # @TODO cPickle
         return
 
-    def sentence_to_vector(self, sentence, lower=True):
-        sentence = regex.sub(r'[^\w\s]', '', sentence)
-
-        s2 = ''
-        for w in sentence.split():
-            if isInt_float(w):
-                s2 = s2 + ' ' + num2words(int(w))
-            else:
-                s2 = s2 + ' ' + w
-
-        sentente = s2.strip()
-
-        if lower:
-            sentence = sentence.lower()
-
-        vector = np.zeros(self.dims)
-        num_words = 0
-
-        for w in sentence.split(' '):
-            try:
-                vector += self.word_to_vector(w)
-                num_words += 1
-            except KeyError as err:
-                continue
-
-        if num_words == 0:
-            logging.warning("Any word of the sentence found in the embedding. Sentence: " + str(sentence))
-            return None
-
-        else:
-            return vector / num_words
 
     def most_frequent(self, k):
         nvocabulary = self.words[:k]
@@ -225,15 +191,6 @@ def load_embedding(path, format="text", vocabulary=None, length_normalize=True, 
 
     if format == "bin":
         vocab, matrix = from_BIN(path, vocabulary)
-
-    if format == "senna":
-        vocab, matrix = from_SENNA(path, path2)
-
-    if format == "vgg":
-        vocab, matrix = from_vgg(path, method_vgg)
-
-    if format == "DT_embeddings":
-        vocab, matrix = from_DT_embeddings(path, path2)
 
     if delete_duplicates:
         remove_duplicates(vocab, matrix)
@@ -341,7 +298,6 @@ def from_BIN(path, vocabulary=None):
                         int(100 * ((line+1) / vocab_size))) + '%'
                     print(string, end="\r")
 
-
             word = []
             while True:
                 ch = file.read(1)
@@ -370,57 +326,3 @@ def from_BIN(path, vocabulary=None):
             raise ValueError("Header says that there are {} words, but {} were read".format(vocab_size_aux, len(words)))
 
         return words, vectors
-
-
-def from_SENNA(path_words, path_vectors):
-    words = []
-    vectors = []
-
-    with open(path_words) as f:
-        for line in f:
-            l = line.split()
-            words.append(l[0])
-
-    with open(path_vectors) as f:
-        for line in f:
-            l = line.split()
-            vectors.append(np.asarray(l).astype(np.float32))
-    return words, vectors
-
-
-def from_vgg(path, method_vgg="delete"):
-    data = pd.read_csv(path, sep=',', header=None)
-    words = []
-    vectors = []
-    for i in range(len(data.index)):
-        w = data.iloc[i, 0]
-        if w not in words:
-            words.append(w)
-            vectors.append(np.array(data.iloc[i, 1:]).astype(np.float32))
-        else:
-            if method_vgg == "mean":
-                ind = words.index(w)
-                vectors[ind] = (vectors[ind] + np.array(data.iloc[i, 1:]).astype(np.float32)) / 2
-
-    return words, vectors
-
-
-def from_DT_embeddings(path_nodes, path_vectors):
-    vectors = []
-    nodes = {}
-    words = []
-    with codecs.open(path_nodes, "r", encoding='utf-8', errors='ignore') as fnodes:
-        for line_no, line in enumerate(fnodes):
-            wt, wn = line.split()
-            w = wt.split('/')[0]
-            nodes.update({wn: w})
-
-    with codecs.open(path_vectors, "r", encoding='utf-8', errors='ignore') as fwords:
-        next(fwords)
-        for line_no, line in enumerate(fwords):
-            l = line.split()
-            vectors.append(np.asarray(l[1:]).astype(np.float32))
-            words.append(nodes[l[0]])
-
-    return words, vectors
-
