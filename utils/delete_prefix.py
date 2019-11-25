@@ -5,11 +5,12 @@ from embedding import load_embedding
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-i', '--input', required=True)
+parser.add_argument('-o', '--output', required=True)
 args = parser.parse_args()
 
 emb = load_embedding(args.input,  length_normalize=False, delete_duplicates=True)
 
-with open('/home/iker/Documents/Embeddings/Separated/'+args.input.split('/')[-1],'w') as file:
+with open(args.output,'w+') as file:
     print(str(len(emb.words)) + ' ' + str(emb.dims), file=file)
 
     for word in emb.words:
