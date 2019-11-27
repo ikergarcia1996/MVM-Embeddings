@@ -4,6 +4,7 @@ This repository contains an open-source implementation of our framework to learn
 
 ## Requeriments
 
+* Python 3
 * numpy
 * sklearn
 * scipy
@@ -26,7 +27,7 @@ If you want to generate a meta-embedding combining monolingual source embeddings
 python3 generate_mvm_embeddings.py -i source_embedding_1.vec source_embedding_2.vec source_embedding_3.vec -t source_embedding_1.vec -o meta_embedding.vec
 ``` 
 Parameters:
- * -i: List of source embeddings, you can use as much as you want!!
+ * -i: List of source embeddings, you can use as many as you want!!
  * -t: The vector space to which all the source embeddings will be mapped using VecMap. It can be any of the source embeddings or a different word embedding. Generally, any word embedding with a large vocabulary will be fine. 
  * -o: Path where the meta embedding will be written.
  * -k: Number of nearest neighbours to use in the OOV generation step (default: 10). 
