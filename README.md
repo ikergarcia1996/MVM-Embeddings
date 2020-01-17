@@ -35,14 +35,16 @@ Parameters:
  * -b: batch size. Increasing this value helps the OOV step to run faster. If you get Out of Memory errors lower it. (Default: 256, should be fine for an 8GB GPU)
  * -r: If you want to improve the source embeddings using retrofitting you can and this parameter followed by the lexicon that you want to use (more info: https://github.com/mfaruqui/retrofitting). Not recommended in general, but it may improve the result in some tasks.
  * -rn: Retrofitting number of iterations (default:10)
+ * -oov: Do not use the OOV generation algorithm (NN). 
  * -nc: Do not delete the intermediate files (outputs from Vecmap). Use it if you love to store a lot of useless big files in your hard drive. 
+
 
 Real usage example:
 ```
 python3 generate_mvm_embeddings.py -i Embeddings/crawl-300d-2M.vec Embeddings/UKBV_L2_header.vec Embeddings/en_AT.txt Embeddings/Param.vec -t Embeddings/crawl-300d-2M.vec -o MetaEmbeddings/FT_UKBV_AT_Param.FT.vec
 ``` 
 
-Alternatively, you can use average, concatenation and concatenation + dimensionality reduction instead of our method to generate meta-embedings. These baseline methods are worse but they can be useful for performance comparisons. Average and Concatenation will also be done using our OOV generation approach. All the vectors will be length so all the source embeddings contribute the same to the final meta embedding.  
+Alternatively, you can use average, concatenation and concatenation + dimensionality reduction instead of our method to generate meta-embedings. These baseline methods are worse but they can be useful for performance comparisons. Average and Concatenation will also be done using our OOV generation approach (unless the -oov flag is specified). All the vectors will be length so all the source embeddings contribute the same to the final meta embedding.  
 ```
 python3 embeddings_concatenate.py -i source_embedding_1.vec source_embedding_2.vec source_embedding_3.vec -o concat_meta_embedding.vec
 python3 dimensionality_reduction.py -i concat_meta_embedding.vec -m [PCA, tSVD, DRA <- default] -n 300 -o concat_dimre_meta_embedding.vec
