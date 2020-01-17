@@ -132,3 +132,7 @@ This repository includes code from other authors, check out their work if you us
 * DRA: Mu, J., Bhat, S., & Viswanath, P. (2017). All-but-the-top: Simple and effective postprocessing for word representations. arXiv preprint arXiv:1702.01417. https://github.com/vyraun/Half-Size
 
 * Some code has also been adapted from "Word Embeddings Benchmarks": https://github.com/kudkudak/word-embeddings-benchmarks
+
+## License
+See [License](https://github.com/ikergarcia1996/MVM-Embeddings/blob/master/LICENSE)
+Note: This license only applies for our code. External APIs (see [References](#references)) may have a different license.
