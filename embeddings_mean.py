@@ -176,7 +176,7 @@ def average_embeddings_generate(
             emb_path,
             vocabulary=None,
             lower=False,
-            length_normalize=False,
+            length_normalize=True,
             normalize_dimensionwise=False,
             delete_duplicates=True,
         )
@@ -293,7 +293,7 @@ def average_embeddings(
             emb_path,
             vocabulary=None,
             lower=False,
-            length_normalize=False,
+            length_normalize=True,
             normalize_dimensionwise=False,
             delete_duplicates=True,
         )
