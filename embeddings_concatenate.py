@@ -320,7 +320,7 @@ def concatenate_embeddings(
                 print(string, end="\r")
         print()
 
-        with open("tmp_conc/" + str(x), "w") as file:
+        with open("tmp_conc/" + str(x), "w+", encoding="utf-8") as file:
             for wi, w in enumerate(word_id):
                 if first_emb:
                     print(

@@ -1,12 +1,14 @@
-#from utils import isInt_float
+# from utils import isInt_float
 import numpy as np
 from sklearn.preprocessing import normalize
 from vocabulary import Vocabulary
 import logging
 import io
-#import codecs
+
+# import codecs
 from utils import get_dimensions, get_num_words
 import datetime
+
 
 class Embedding(object):
     vocabulary = Vocabulary()
@@ -22,10 +24,12 @@ class Embedding(object):
         # [EN]: Check if we have the same number of words and vectors
         # [ES]: Comprobar si tenemos el mismo numero de vectores que de palabras
 
-
         if len(self.vocabulary) != self.vectors.shape[0]:
-            raise ValueError("We have a different number of words and vectors. We have {} words and {} vectors".format(
-                len(self.vocabulary), self.vectors.shape[0]))
+            raise ValueError(
+                "We have a different number of words and vectors. We have {} words and {} vectors".format(
+                    len(self.vocabulary), self.vectors.shape[0]
+                )
+            )
 
         # [EN]: Test if there are duplicated words
         # [ES]: Comprobar si tenemos palabras duplicadas
@@ -73,8 +77,7 @@ class Embedding(object):
         try:
             return [self.word_to_vector(x) for x in vocab]
         except KeyError as err:
-                raise
-
+            raise
 
     # [ES] Normalización L2 por filas. Para cada vector asegura que la raiz cuadrada de la suma de los cuadros es igual a 1.
     # [ES] Si replace==True se sustituarian los vectores actuales por los vectores normalizados. En caso contrario, se devolverá un nuevo embedding con las mismas palabras que el actual pero los vectores normalizados.
@@ -85,7 +88,9 @@ class Embedding(object):
             self.vectors = self.vectors / norms[:, np.newaxis]
 
         else:
-            return Embedding(vectors=self.vectors / norms[:, np.newaxis], vocabulary=self.vocabulary)
+            return Embedding(
+                vectors=self.vectors / norms[:, np.newaxis], vocabulary=self.vocabulary
+            )
 
     # [ES] Normalización L2 por columnas. . Para cada columna asegura que la raiz cuadrada de la suma de los cuadros es igual a 1.
     # [ES] Si replace==True se sustituarian los vectores actuales por los vectores normalizados. En caso contrario, se devolverá un nuevo embedding con las mismas palabras que el actual pero los vectores normalizados.
@@ -100,19 +105,27 @@ class Embedding(object):
 
     def L1_rowwise(self, replace=True):
         if replace:
-            normalize(self.vectors, norm='l1', axis=1, copy=False, return_norm=False)
+            normalize(self.vectors, norm="l1", axis=1, copy=False, return_norm=False)
 
         else:
-            return Embedding(vectors=normalize(self.vectors, norm='l1', axis=1, copy=True, return_norm=True),
-                             vocabulary=self.vocabulary)
+            return Embedding(
+                vectors=normalize(
+                    self.vectors, norm="l1", axis=1, copy=True, return_norm=True
+                ),
+                vocabulary=self.vocabulary,
+            )
 
     def L1_dimensionwwise(self, replace=True):
         if replace:
-            normalize(self.vectors, norm='l1', axis=0, copy=False, return_norm=False)
+            normalize(self.vectors, norm="l1", axis=0, copy=False, return_norm=False)
 
         else:
-            return Embedding(vectors=normalize(self.vectors, norm='l1', axis=0, copy=True, return_norm=True),
-                             vocabulary=self.vocabulary)
+            return Embedding(
+                vectors=normalize(
+                    self.vectors, norm="l1", axis=0, copy=True, return_norm=True
+                ),
+                vocabulary=self.vocabulary,
+            )
 
     # [ES] Para cada columna resta la media de todas las columnas del embedding
     # [ES] Si replace==True se sustituarian los vectores actuales por los vectores normalizados. En caso contrario, se devolverá un nuevo embedding con las mismas palabras que el actual pero los vectores normalizados.
@@ -132,30 +145,36 @@ class Embedding(object):
             self.vectors = self.vectors - avg[:, np.newaxis]
 
         else:
-            return Embedding(vectors=self.vectors - avg[:, np.newaxis], vocabulary=self.vocabulary)
+            return Embedding(
+                vectors=self.vectors - avg[:, np.newaxis], vocabulary=self.vocabulary
+            )
 
     # [ES] Exporta a ruta "path" el embedding actual. El formato será "dog -0.190911 -0.0466989 ... \n" si printHeader== True imprimirá al comienzo del fichero una linea que contiene el número de palabras del embedding y la longitud de los vectores del embedding
     def export(self, path, printHeader=True):
         words = self.words
         vectors = self.vectors
 
-        with open(path, 'w+') as file:
+        with open(path, "w+", encoding="utf-8") as file:
 
             if printHeader:
-                print('%d %d' % (len(self), self.dims), file=file)
+                print("%d %d" % (len(self), self.dims), file=file)
 
             for i in range(len(self)):
-                print(words[i] + ' ' + ' '.join(['%.6g' % x for x in vectors[i]]), file=file)
+                print(
+                    words[i] + " " + " ".join(["%.6g" % x for x in vectors[i]]),
+                    file=file,
+                )
 
     def save(self, file):
         # @TODO cPickle
         return
 
-
     def most_frequent(self, k):
         nvocabulary = self.words[:k]
         nvectors = np.asarray([self.word_to_vector(w) for w in nvocabulary])
-        return Embedding(vectors=nvectors, vocabulary=Vocabulary(nvocabulary, False, False))
+        return Embedding(
+            vectors=nvectors, vocabulary=Vocabulary(nvocabulary, False, False)
+        )
 
 
 # [ES] Carga un embedding desde un directorio, devuelve un objeto del tipo embedding.
@@ -173,17 +192,32 @@ class Embedding(object):
 # delete_duplicates: Elimina los duplicados del embeddig, por cada palabra duplicada se mantendrá solo la primera que aparezca en el fichero. Solo recomendable para embeddings con mucha suciedad como los obtenidos de common crawl, donde algunas palabras con caracteres extraños no reconocidos por python se leen como si fueran la misma, eliminar estas palabras no tiene impacto alguno en el embedding, por ejemplo en el caso de FastText CC solo se eliminan 4 palabras.
 # method_vgg: En caso de que el formato sea "vgg", si este atributo es "delete" se eliminarán los duplicados de la misma forma explicada en el atributo anterior. En caso de que sea "average" se hará la media de los vectores de las palabras duplicadas. Este es un embedding que tiene la peculiaridad de tener un gran número de duplicados
 
-def load_embedding(path, format="text", vocabulary=None, length_normalize=True, normalize_dimensionwise=False,
-                   to_unicode=True, lower=False, path2='', delete_duplicates=False,
-                   method_vgg="delete"):
-    assert format in ["text", "bin", "senna", "vgg", "DT_embeddings"], "Unrecognized format"
+
+def load_embedding(
+    path,
+    format="text",
+    vocabulary=None,
+    length_normalize=True,
+    normalize_dimensionwise=False,
+    to_unicode=True,
+    lower=False,
+    path2="",
+    delete_duplicates=False,
+    method_vgg="delete",
+):
+    assert format in [
+        "text",
+        "bin",
+        "senna",
+        "vgg",
+        "DT_embeddings",
+    ], "Unrecognized format"
 
     if vocabulary is not None:
         if len(set(vocabulary)) != len(vocabulary):
             logging.warning(
-                "Provided vocabulary has duplicates. IMPORTANT NOTE: The embedding that this function will return will not have duplicates.")
-
-
+                "Provided vocabulary has duplicates. IMPORTANT NOTE: The embedding that this function will return will not have duplicates."
+            )
 
     if format == "text":
         dims_restriction = get_dimensions(path)
@@ -207,17 +241,17 @@ def load_embedding(path, format="text", vocabulary=None, length_normalize=True, 
     return e
 
 
-
 def remove_duplicates(words, vectors):
     seen = set()
     seen_add = seen.add
-    duplicate_indexes = [idx for idx, item in enumerate(words) if item in seen or seen_add(item)]
+    duplicate_indexes = [
+        idx for idx, item in enumerate(words) if item in seen or seen_add(item)
+    ]
     for d in reversed(duplicate_indexes):
         logging.warning("Word {} deleted".format((words[d])))
 
-        del (words[d])
-        del (vectors[d])
-
+        del words[d]
+        del vectors[d]
 
 
 def from_TXT(path, vocabulary=None, dims_restriction=None):
@@ -232,12 +266,28 @@ def from_TXT(path, vocabulary=None, dims_restriction=None):
 
             if line_no % 1000 == 0:
                 if num_words is not None:
-                    string = "<" + str(datetime.datetime.now()) + ">  " + 'Loading embedding ' + str(path) + ': ' + str(
-                        int(100 * ((line_no+1) / num_words))) + '%'
+                    string = (
+                        "<"
+                        + str(datetime.datetime.now())
+                        + ">  "
+                        + "Loading embedding "
+                        + str(path)
+                        + ": "
+                        + str(int(100 * ((line_no + 1) / num_words)))
+                        + "%"
+                    )
                     print(string, end="\r")
                 else:
-                    string = "<" + str(datetime.datetime.now()) + ">  " + 'Loading embedding ' + str(path) + ': ' + str(
-                        int(line_no+1)) + ' words read'
+                    string = (
+                        "<"
+                        + str(datetime.datetime.now())
+                        + ">  "
+                        + "Loading embedding "
+                        + str(path)
+                        + ": "
+                        + str(int(line_no + 1))
+                        + " words read"
+                    )
                     print(string, end="\r")
 
             l = line.split()
@@ -249,14 +299,16 @@ def from_TXT(path, vocabulary=None, dims_restriction=None):
                         words.append(l[0])
                     else:
                         wi = len(l) - dims_restriction
-                        st = ''.join(l[0:wi])
+                        st = "".join(l[0:wi])
                         words.append(st)
                         vectors.append(np.asarray(l[wi:]).astype(np.float32))
 
                 except ValueError:
                     logging.warning(
-                        "Line {}.Error reading the vector for the word {}... Word has been omitted".format(line_no,
-                                                                                                           l[0:3]))
+                        "Line {}.Error reading the vector for the word {}... Word has been omitted".format(
+                            line_no, l[0:3]
+                        )
+                    )
 
             elif l[0] in vocabulary:
                 try:
@@ -265,20 +317,22 @@ def from_TXT(path, vocabulary=None, dims_restriction=None):
                         words.append(l[0])
                     else:
                         wi = len(l) - dims_restriction
-                        st = ''.join(l[0:wi])
+                        st = "".join(l[0:wi])
                         words.append(st)
                         vectors.append(np.asarray(l[wi:]).astype(np.float32))
                 except ValueError:
                     logging.warning(
-                        "Line {}.Error reading the vector for the word {}... Word has been omitted".format(line_no,
-                                                                                                           l[0:3]))
+                        "Line {}.Error reading the vector for the word {}... Word has been omitted".format(
+                            line_no, l[0:3]
+                        )
+                    )
     print()
 
     return words, vectors
 
 
 def from_BIN(path, vocabulary=None):
-    with io.open(path, 'rb') as file:
+    with io.open(path, "rb") as file:
         words = []
 
         header = file.readline()
@@ -294,35 +348,51 @@ def from_BIN(path, vocabulary=None):
         for line in range(vocab_size):
 
             if line % 1000 == 0:
-                    string = "<" + str(datetime.datetime.now()) + ">  " + 'Loading embedding ' + str(path) + ': ' + str(
-                        int(100 * ((line+1) / vocab_size))) + '%'
-                    print(string, end="\r")
+                string = (
+                    "<"
+                    + str(datetime.datetime.now())
+                    + ">  "
+                    + "Loading embedding "
+                    + str(path)
+                    + ": "
+                    + str(int(100 * ((line + 1) / vocab_size)))
+                    + "%"
+                )
+                print(string, end="\r")
 
             word = []
             while True:
                 ch = file.read(1)
-                if ch == b' ':
+                if ch == b" ":
                     break
-                if ch != b'\n':
+                if ch != b"\n":
                     word.append(ch)
 
             if vocabulary is None:
 
-                words.append(b''.join(word).decode('utf8'))
+                words.append(b"".join(word).decode("utf8"))
 
-                vectors[line, :] = np.fromstring(file.read(binary_len), dtype=np.float32)
+                vectors[line, :] = np.fromstring(
+                    file.read(binary_len), dtype=np.float32
+                )
 
             else:
-                w = b''.join(word).decode("latin-1")
+                w = b"".join(word).decode("latin-1")
                 if w in vocabulary:
                     words.append(w)
-                    vectors.append(np.fromstring(file.read(binary_len), dtype=np.float32))
+                    vectors.append(
+                        np.fromstring(file.read(binary_len), dtype=np.float32)
+                    )
 
                 else:
                     vocab_size_aux -= 1
                     file.read(binary_len)
 
         if len(words) != vocab_size_aux:
-            raise ValueError("Header says that there are {} words, but {} were read".format(vocab_size_aux, len(words)))
+            raise ValueError(
+                "Header says that there are {} words, but {} were read".format(
+                    vocab_size_aux, len(words)
+                )
+            )
 
         return words, vectors
