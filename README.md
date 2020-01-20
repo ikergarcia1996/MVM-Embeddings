@@ -20,9 +20,10 @@ This repository contains an open-source implementation of our framework to learn
     archivePrefix={arXiv},
     primaryClass={cs.CL}
 }
+```
 
 ## Usage
-```
+
 Our code assumes the word2vec.txt format for all the embeddings, that is, the embeddings should be stored as a text file with a header including the number of words in the word embedding followed by the number of dimensions of the vectors
 ```
 10000 300
