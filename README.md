@@ -10,8 +10,19 @@ This repository contains an open-source implementation of our framework to learn
 * scipy
 * tensorflow (2.0.0)
 
-## Usage
+## Citation
+´´´
+@misc{garca2020common,
+    title={A Common Semantic Space for Monolingual and Cross-Lingual Meta-Embeddings},
+    author={Iker García and Rodrigo Agerri and German Rigau},
+    year={2020},
+    eprint={2001.06381},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+}
 
+## Usage
+´´´
 Our code assumes the word2vec.txt format for all the embeddings, that is, the embeddings should be stored as a text file with a header including the number of words in the word embedding followed by the number of dimensions of the vectors
 ```
 10000 300
