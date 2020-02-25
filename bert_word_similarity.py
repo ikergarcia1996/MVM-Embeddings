@@ -1,77 +1,94 @@
-# This file used code from: https://mccormickml.com/2019/05/14/BERT-word-embeddings-tutorial/
 import torch
-import sys
-import os
-from pytorch_pretrained_bert import BertTokenizer, BertModel
+from transformers import *
 from similarity_datasets import get_vocab_all
-from utils import printTrace
+import numpy as np
+import os
 import datetime
+import argparse
 
 
-printTrace("Loading vocabulary from datasets...")
-vocab = get_vocab_all(lower=True)
-printTrace("Done!")
-printTrace("Loading BERT...")
-model = BertModel.from_pretrained('bert-base-uncased')
-model.eval()
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-printTrace("Done!")
-concat_bert = open("../Embeddings/BERT.concat", 'w+')
-sum_bert = open("../Embeddings/BERT.sum", 'w+')
-avg_bert = open("../Embeddings/BERT.avg", 'w+')
-last_bert = open("../Embeddings/BERT.last", 'w+')
+def bert_ws(output_path: str, model_name: str = "bert-base-cased", num_last_layers = 13):
 
-for i, word in enumerate(vocab):
-    if i % 100 == 0:
-        string = "<" + str(datetime.datetime.now()) + ">  " + 'Generating static word representations from BERT: ' + \
-                 str(int(100 * i / len(vocab))) + '%'
-        print(string, end="\r")
+    files = [
+        open(os.path.join(output_path, f"{i}.vec"), "w+", encoding="utf-8")
+        for i in range(num_last_layers)
+    ]
+    files_avg = [
+        open(os.path.join(output_path, f"avg_from_{i}.vec"), "w+", encoding="utf-8")
+        for i in range(num_last_layers)
+    ]
 
-    text = "[CLS] " + str(word) + " [SEP]"
-    tokenized_text = tokenizer.tokenize(text)
-    indexed_tokens = tokenizer.convert_tokens_to_ids(tokenized_text)
-    segments_ids = [1] * len(tokenized_text)
-    tokens_tensor = torch.tensor([indexed_tokens])
-    segments_tensors = torch.tensor([segments_ids])
-    with torch.no_grad():
-        encoded_layers, _ = model(tokens_tensor, segments_tensors)
+    tokenizer = BertTokenizer.from_pretrained(model_name)
+    model = BertModel.from_pretrained(
+        model_name, output_hidden_states=True, output_attentions=True
+    )
+    model.eval()
+    model.to(device="cuda:0")
+    vocab = get_vocab_all(lower=True)
 
-    token_embeddings = []
-    for token_i in range(len(tokenized_text)):
-        hidden_layers = []
-        for layer_i in range(len(encoded_layers)):
-            vec = encoded_layers[layer_i][0][token_i]
-            hidden_layers.append(vec)
-            token_embeddings.append(hidden_layers)
+    for word_no, word in enumerate(vocab):
 
-    sentence_embedding = torch.mean(encoded_layers[11], 1)
-    print(str(word) + ' ' + ' '.join(['%.6g' % x for x in sentence_embedding[0]]), file=avg_bert)
+        if word_no % 1 == 0:
+            string = (
+                "<"
+                + str(datetime.datetime.now())
+                + ">  "
+                + "Generating static word representations from BERT: "
+                + str(int(100 * word_no / len(vocab)))
+                + "%"
+            )
+            print(string, end="\r")
 
-    concatenated_last_4_layers = [torch.cat((layer[-1], layer[-2], layer[-3], layer[-4]), 0) for layer in token_embeddings]
-    sentence_embedding = torch.mean(torch.stack(concatenated_last_4_layers), 0)
-    print(str(word) + ' ' + ' '.join(['%.6g' % x for x in sentence_embedding]), file=concat_bert)
+        input_ids = torch.tensor(
+            [tokenizer.encode(f"[CLS] {word} ", add_special_tokens=False)]
+        )
 
-    sum_last_4_layers = [torch.sum(torch.stack(layer)[-4:], 0) for layer in token_embeddings]
-    sentence_embedding = torch.mean(torch.stack(sum_last_4_layers), 0)
-    print(str(word) + ' ' + ' '.join(['%.6g' % x for x in sentence_embedding]), file=sum_bert)
+        with torch.no_grad():
+            all_hidden_states, _ = model(input_ids.to(device="cuda:0"))[-2:]
 
-    last_layer = [layer[-1] for layer in token_embeddings]
-    sentence_embedding = torch.mean(torch.stack(last_layer), 0)
-    print(str(word) + ' ' + ' '.join(['%.6g' % x for x in sentence_embedding]), file=last_bert)
+        # print layers
 
-print()
-printTrace("Done!")
-printTrace("Evaluating word similarity...!")
-com = 'python3 evaluate_similarity.py -i ../Embeddings/BERT.sum -lg en -l'
-print(com)
-os.system(com)
-com = 'python3 evaluate_similarity.py -i ../Embeddings/BERT.concat -lg en -l'
-print(com)
-os.system(com)
-com = 'python3 evaluate_similarity.py -i ../Embeddings/BERT.avg -lg en -l'
-print(com)
-os.system(com)
-com = 'python3 evaluate_similarity.py -i ../Embeddings/BERT.last -lg en -l'
-print(com)
-os.system(com)
-printTrace("Done!")
+        hidden_states = np.asarray(
+            [
+                all_hidden_states[layer][0][1:].cpu().numpy()
+                for layer in range(num_last_layers)
+            ]
+        )
+        hidden_states = np.asarray([np.average(x, axis=0) for x in hidden_states])
+
+        for layer in range(num_last_layers):
+            print(
+                word + " " + " ".join(str(x) for x in hidden_states[layer]),
+                file=files[layer],
+            )
+
+        # print avg layers
+        for layer in range(num_last_layers):
+            avg_vectors = np.asarray(hidden_states[:layer])
+            avg = np.average(avg_vectors, axis=0)
+
+            print(
+                word + " " + " ".join(str(x) for x in avg), file=files_avg[layer],
+            )
+
+    [f.close() for f in files]
+    [f.close() for f in files_avg]
+
+    for i in range(num_last_layers):
+        filename = os.path.join(output_path, f"{i}.vec")
+        com = f"python3 evaluate_similarity.py -i {filename} -lg en -l"
+        os.system(com)
+
+    for i in range(num_last_layers):
+        filename = os.path.join(output_path, f"avg_from_{i}.vec")
+        com = f"python3 evaluate_similarity.py -i {filename} -lg en -l"
+        os.system(com)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-o", "--output_dir", type=str, required=True)
+    parser.add_argument("-m", "--model_name", type=str, default="bert-base-uncased")
+    args = parser.parse_args()
+
+    bert_ws(output_path=args.output_dir, model_name=args.model_name)
