@@ -7,7 +7,41 @@ import datetime
 import argparse
 
 
-def bert_ws(output_path: str, model_name: str = "bert-base-cased", num_last_layers = 13):
+def get_model(model_type, model_name):
+    if model_type == "bert":
+        return (
+            BertTokenizer.from_pretrained(model_name),
+            BertModel.from_pretrained(
+                model_name, output_hidden_states=True, output_attentions=True
+            ),
+        )
+
+    elif model_type == "xlmr":
+        return (
+            XLMRobertaTokenizer.from_pretrained(model_name),
+            XLMRobertaModel.from_pretrained(
+                model_name, output_hidden_states=True, output_attentions=True
+            ),
+        )
+
+    elif model_type == "roberta":
+        return (
+            RobertaTokenizer.from_pretrained(model_name),
+            RobertaModel.from_pretrained(
+                model_name, output_hidden_states=True, output_attentions=True
+            ),
+        )
+
+    else:
+        raise (f"{model_type} not implemented")
+
+
+def bert_ws(
+    output_path: str,
+    model_type="bert",
+    model_name: str = "bert-base-cased",
+    num_last_layers=13,
+):
 
     files = [
         open(os.path.join(output_path, f"{i}.vec"), "w+", encoding="utf-8")
@@ -18,10 +52,7 @@ def bert_ws(output_path: str, model_name: str = "bert-base-cased", num_last_laye
         for i in range(num_last_layers)
     ]
 
-    tokenizer = BertTokenizer.from_pretrained(model_name)
-    model = BertModel.from_pretrained(
-        model_name, output_hidden_states=True, output_attentions=True
-    )
+    tokenizer, model = get_model(model_type, model_name)
     model.eval()
     model.to(device="cuda:0")
     vocab = get_vocab_all(lower=True)
@@ -54,6 +85,7 @@ def bert_ws(output_path: str, model_name: str = "bert-base-cased", num_last_laye
                 for layer in range(num_last_layers)
             ]
         )
+
         hidden_states = np.asarray([np.average(x, axis=0) for x in hidden_states])
 
         for layer in range(num_last_layers):
@@ -66,7 +98,7 @@ def bert_ws(output_path: str, model_name: str = "bert-base-cased", num_last_laye
         for layer in range(num_last_layers):
             avg_vectors = np.asarray(hidden_states[:layer])
             avg = np.average(avg_vectors, axis=0)
-
+            # avg = np.concatenate(avg_vectors,axis=0)
             print(
                 word + " " + " ".join(str(x) for x in avg), file=files_avg[layer],
             )
@@ -88,7 +120,12 @@ def bert_ws(output_path: str, model_name: str = "bert-base-cased", num_last_laye
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--output_dir", type=str, required=True)
+    parser.add_argument("-t", "--model_type", type=str, default="bert")
     parser.add_argument("-m", "--model_name", type=str, default="bert-base-uncased")
     args = parser.parse_args()
 
-    bert_ws(output_path=args.output_dir, model_name=args.model_name)
+    bert_ws(
+        output_path=args.output_dir,
+        model_type=args.model_type,
+        model_name=args.model_name,
+    )
